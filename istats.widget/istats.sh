@@ -14,9 +14,9 @@ fi
 #
 # Execute iStats command
 # 
-if [ -n "$(which istats)" ]; then
+if [ -n "$(which /usr/local/bin/istats)" ]; then
     # define command
-    command=( "$(which istats)" )
+    command=( "$(which /usr/local/bin/istats)" )
 
     # execute
     "${command[@]}"
