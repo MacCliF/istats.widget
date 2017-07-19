@@ -1,33 +1,36 @@
 /**
- * Stats Widget
- * ____________________________________________________________________________
+ * Stats Widget for Übersicht http://tracesof.net/uebersicht/
  *
  * Requires installation of https://github.com/Chris911/iStats.
+ *
+ * This project is a fork from https://github.com/roele/istats.widget.
  *
  */
 
 /**
  * Visual appearance configuration
  */
+
 ui: {
   /* Temperature unit, either C or F */
   unit: 'C',
 
   /* Vertical position in PX, either top or bottom */
-  top: '0',
-
+  top: '30',
   //bottom: '0',
 
   /* Horizontal position in PX, either left or right */
-  left: '0',
-
+  left: '10',
   //right: '0',
 
   /* Stats color */
   color: '#fff',
 
   /* Stats donut background color*/
-  bgcolor: 'transparent',
+  bgcolor: 'black',
+
+  /* Stats donut background opacity*/
+  bgopacity: '0.4',
 
   /* Stats width in PX */
   width: 80,
@@ -39,7 +42,7 @@ ui: {
   radius: 30,
 
   /* Donut line thickness in PX */
-  thickness: 8,
+  thickness: 3,
 
   /* Icon size in PX */
   iconsize: 30,
@@ -53,7 +56,7 @@ ui: {
 
 ,command: 'istats.widget/istats.sh'
 
-,refreshFrequency: 3000
+,refreshFrequency: 5000
 
 ,render: function(output) {
   var data = this.parseOutput(output);
@@ -72,16 +75,20 @@ ui: {
   html += '">';
 
   if (data.cpu) {
-      html += this.renderChart('CPU', 'icon-cpu', 100, 0);
+      html += this.renderChart('CPU', 'iconx-cpu', 100, 0);
   }
 
+  if (data.extra) {
+      html += this.renderChart('GPU', 'iconx-gpu', 100, 0);
+  }
+/*
   if (data.battery) {
       html += this.renderChart('Battery', 'icon-carbattery', 100, 0);
   }
-
+*/
   if (data.fan) {
     for (var i = 0; i < data.fan['total-fans-in-system']; i++) {
-      html += this.renderChart('Fan ' + i, 'icon-fan', 100, 0);
+      html += this.renderChart('Fan ' + i, 'iconx-fan', 100, 0);
     }
   }
   html +=  '</div>';
@@ -98,19 +105,31 @@ ui: {
   var c = Math.floor(2 * Math.PI * this.ui.radius);
 
   if (data.cpu) {
+    var inner = '<a style="font-size:8px">'
     var temperature = (this.ui.unit.toUpperCase() === 'C')
                         ? Math.floor(data.cpu['cpu-temp']) + '°C'
                         : Math.floor(data.cpu['cpu-temp'] * 1.8 + 32) + '°F';
 
     $('#stats .cpu circle.bar').css('stroke-dasharray', Math.floor( (data.cpu['cpu-temp'] / MAX_CPU * 100) * c/100) + ' ' + c);
-    $('#stats .cpu .temp').text(temperature);
+    $('#stats .cpu .temp').text(
+      temperature
+    );
   }
 
-  if (data.battery) {
-    $('#stats .battery circle.bar').css('stroke-dasharray', Math.floor( (data.battery['current-charge'] / data.battery['maximum-charge'] * 100) * c/100) + ' ' + c);
-    $('#stats .battery .temp').text(Math.floor((data.battery['current-charge'] / data.battery['maximum-charge'] * 100)) + '%');
-  }
+  if (data.extra) {
+    var temperature = (this.ui.unit.toUpperCase() === 'C')
+                        ? Math.floor(data.extra['tg0d-gpu-0-die-temp']) + '°C'
+                        : Math.floor(data.extra['tg0d-gpu-0-die-temp'] * 1.8 + 32) + '°F';
 
+    $('#stats .gpu circle.bar').css('stroke-dasharray', Math.floor( (data.extra['tg0d-gpu-0-die-temp'] / MAX_CPU * 100) * c/100) + ' ' + c);
+    $('#stats .gpu .temp').text(temperature);
+  }
+/*
+  if (data.battery) {                                                                                                                        // V
+    $('#stats .battery circle.bar').css('stroke-dasharray', Math.floor( ((data.battery['current-charge'] / data.battery['maximum-charge'] * 100)+2) * c/100) + ' ' + c);
+    $('#stats .battery .temp').text(Math.floor((data.battery['current-charge'] / data.battery['maximum-charge'] * 100)+1) + '%');
+  }                                                                                                                 // ^
+*/
   if (data.fan) {
     for (var i = 0; i < data.fan['total-fans-in-system']; i++) {
       $('#stats .fan-' + i + ' circle.bar').css('stroke-dasharray', Math.floor( (data.fan['fan-' + i + '-speed'] / MAX_FAN * 100) * c/100) + ' ' + c);
@@ -128,7 +147,7 @@ ui: {
       html +=       '<i class="icon ' + icon + '" style="font-size: ' + this.ui.iconsize + 'px; line-height:' + this.ui.iconheight + 'px"></i>';
       html +=       '<svg width="' + this.ui.width + 'px" height="' + this.ui.height + 'px">';
       html +=         '<circle class="bg" r="' + r + '" cx="' + (this.ui.width/2) + '" cy="' + (this.ui.height/2) + '"';
-      html +=                ' style="stroke: ' + this.ui.bgcolor + '; stroke-width: ' + this.ui.thickness + '; stroke-dasharray: ' + c + ' ' + c + '"/>';
+      html +=                ' style="opacity: ' + this.ui.bgopacity + '; stroke: ' + this.ui.bgcolor + '; stroke-width: ' + this.ui.thickness + '; stroke-dasharray: ' + c + ' ' + c + '"/>';
       html +=         '<circle class="bar" r="' + r + '" cx="' + (this.ui.width/2) + '" cy="' + (this.ui.height/2) + '" ';
       html +=                ' style="stroke: ' + this.ui.color + '; stroke-width: ' + this.ui.thickness + '; stroke-dasharray: ' + p + ' ' + c + '" />';
       html +=       '</svg>';
@@ -162,6 +181,10 @@ ui: {
       o.cpu = o.cpu || {};
       o.cpu[k] = v;
     }
+    if (section === 'Extra Stats') {
+      o.extra = o.extra || {};
+      o.extra[k] = v;
+    }
     if (section === 'Fan Stats') {
       o.fan = o.fan || {};
       o.fan[k] = v;
@@ -178,8 +201,8 @@ ui: {
 ,style: "                                                    \n\
   font-family: 'Helvetica Neue'                              \n\
   font-size: 16px                                            \n\
-  width: 100%                                                \n\
-  height: 100%                                               \n\
+  width: 500px                                                \n\
+  height: 150px                                               \n\
   transform: auto;                                           \n\
                                                              \n\
   @font-face                                                 \n\
@@ -188,6 +211,12 @@ ui: {
     font-weight: normal;                                     \n\
     font-style: normal;                                      \n\
                                                              \n\
+  @font-face                                                 \n\
+    font-family: 'Iconsx';                                    \n\
+    src: url('istats.widget/iconsx.otf') format('truetype')   \n\
+    font-weight: normal;                                     \n\
+    font-style: normal;                                      \n\
+                                                            \n\
   [class^='icon-'], [class*=' icon-']                        \n\
     font-family: 'Icons';                                    \n\
     background: none;                                        \n\
@@ -195,6 +224,14 @@ ui: {
     height: auto;                                            \n\
     font-style: normal                                       \n\
                                                              \n\
+  [class^='iconx-'], [class*=' iconx-']                        \n\
+    font-family: 'Iconsx';                                    \n\
+    background: none;                                        \n\
+    width: auto;                                             \n\
+    height: auto;                                            \n\
+    font-style: normal;  \n\
+    font-size: 50px                                     \n\
+                                                            \n\
   #stats                                                     \n\
     position: absolute                                       \n\
     margin: 0 0                                              \n\
@@ -220,12 +257,15 @@ ui: {
   #stats .chart circle                                       \n\
     fill: transparent                                        \n\
                                                              \n\
-  #stats .chart .icon-cpu:before                             \n\
-    content: '\\f002'                                        \n\
+  #stats .chart .iconx-cpu:before                             \n\
+    content: 'A'                                        \n\
+                                                             \n\
+  #stats .chart .iconx-gpu:before                             \n\
+    content: 'B'                                        \n\
                                                              \n\
   #stats .chart .icon-carbattery:before                      \n\
     content: '\\f553'                                        \n\
                                                              \n\
-  #stats .chart .icon-fan:before                             \n\
-    content: '\\f66f'                                        \n\
+  #stats .chart .iconx-fan:before                             \n\
+    content: 'C'                                        \n\
 "

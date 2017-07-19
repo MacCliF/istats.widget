@@ -13,7 +13,7 @@ fi
 
 #
 # Execute iStats command
-# 
+# istats enable TG0P
 if [ -n "$(which /usr/local/bin/istats)" ]; then
     # define command
     command=( "$(which /usr/local/bin/istats)" )
