@@ -19,5 +19,5 @@ if [ -n "$(which /usr/local/bin/istats)" ]; then
     command=( "$(which /usr/local/bin/istats)" )
 
     # execute
-    "${command[@]}"
+    "istats"
 fi

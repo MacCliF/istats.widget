@@ -105,7 +105,6 @@ ui: {
   var c = Math.floor(2 * Math.PI * this.ui.radius);
 
   if (data.cpu) {
-    var inner = '<a style="font-size:8px">'
     var temperature = (this.ui.unit.toUpperCase() === 'C')
                         ? Math.floor(data.cpu['cpu-temp']) + '°C'
                         : Math.floor(data.cpu['cpu-temp'] * 1.8 + 32) + '°F';
