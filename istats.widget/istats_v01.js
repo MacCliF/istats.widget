@@ -1,0 +1,270 @@
+// iStats Widget v01
+/**
+ * based on Roland Schaer widget
+ * refined by Carlos F. Moreu
+ * ____________________________________________________________________________
+ *
+ * Requires installation of https://github.com/Chris911/iStats.
+ *
+ */
+
+// Visual appearance configuration
+
+ui: {
+  unit: 'C',                      // Temperature unit, either C or F
+  top: '25',                      // Vertical position in PX, either top or bottom    | bottom: '0',
+  left: '20',                      // Horizontal position in PX, either left or right  | right: '0',
+  bsColor: '255, 255, 255, ',     // Base Color
+  inColor: '0, 0, 0, ',           // Alternative Color
+  inverted: false,                // Boolean operator of exange base/alternative color
+  bsTrans: 0.4,                   // Base Opacity
+  bkTrans: 0.25,                  // Background percentage opacity
+  radius: 50,                     // Radius in PX
+  gLeft: '2',                      // Margin iStats Left in REM
+  iRight: '2',                  // Separete stats in REM
+  thickness: 4,                   // Donut line thickness in PX
+  iconsize: 32,                   // Icon size in PX
+  iconheight: -4,                 // Icon height in PX
+  fontsize: 15,                   // Label font size in PX
+  battery: true,                  // The mac has battery
+},
+
+command: 'istats.widget/istats.sh',
+
+refreshFrequency: '3s',
+
+// Check the radius and set MAX and MIN values
+r_check: function() {
+  rad = this.ui.radius-this.ui.thickness;
+//   // MAX radius whidt/2-thickness
+//   var max_rad = Math.floor(this.ui.width/2-this.ui.thickness);
+//   // MIN radius iconsize/2+2*thickness
+  var min_rad = Math.floor(this.ui.iconsize/2+4*this.ui.thickness);
+  if (rad < min_rad){
+    return min_rad;
+//     // return rad
+//   } else if (rad > max_rad) {
+//     return max_rad;
+//     // return rad
+  } else {
+    return rad
+  }
+},
+
+
+// Here we establish the iStats order and the main style CSS3
+render: function(output) {
+  var data = this.parseOutput(output);
+  if (this.ui.inverted === true) {var baseC = this.ui.inColor} else {var baseC = this.ui.bsColor}
+  var myColor = 'rgba('+baseC+this.ui.bsTrans+')';
+  var html  = '<div id="stats" ';
+      html +=      'style="color: ' + myColor + '; ';
+  if (this.ui.top) {
+      html +=           'top:' + this.ui.top + 'px; ';
+  } else if (this.ui.bottom) {
+      html +=           'bottom:' + this.ui.bottom + 'px; ';
+  }
+  if (this.ui.left) {
+      html +=           'left:' + this.ui.left + 'px; ';
+  } else if (this.ui.right) {
+      html +=           'right:' + this.ui.right + 'px; ';
+  }
+  html += '">';
+
+  if (data.cpu) {
+      html += this.renderChart('CPU', 'icon-cpu', 100, 0);
+  }
+
+  if (data.gpu) {
+      html += this.renderChart('GPU', 'icon-gpu', 100, 0);
+  }
+
+  if (this.ui.battery === true) {
+    if (data.battery) {
+      html += this.renderChart('Battery', 'icon-carbattery', 100, 0);
+    }
+  }
+
+  if (data.fan) {
+    for (var i = 0; i < data.fan['total-fans-in-system']; i++) {
+      html += this.renderChart('Fan ' + i, 'icon-fan', 100, 0);
+    }
+  }
+  html +=  '</div>';
+
+  return html;
+},
+
+// Here we stablish the MAX values and asign the current values to HTML5 classes
+update: function(output, domElement) {
+  var data = this.parseOutput(output);
+  var r = this.r_check();
+  var c = Math.floor(2 * Math.PI * r); // This is the circumference length
+  var cgpuMAX  = 90;
+  var fanMAX   = 5000;
+  var gpuTEMP  = data.gpu['gpu-temp'];
+  var cpuTEMP  = data.cpu['cpu-temp'];
+  if (this.ui.battery === true) {
+    var battMAX  = data.battery['maximum-charge'];
+    var battCHAR = data.battery['current-charge'];
+  }
+  var fanNUM   = data.fan['total-fans-in-system'];
+  if (data.cpu) {
+    var temperature = (this.ui.unit.toUpperCase() === 'C')
+                        ? Math.floor(cpuTEMP) + ' °C'
+                        : Math.floor(cpuTEMP * 1.8 + 32) + ' °F';
+
+    $('#stats .cpu circle.bar').css('stroke-dasharray', cpuTEMP/cgpuMAX *c + ' ' + c);
+    $('#stats .cpu .temp').text(temperature);
+  }
+  if (data.gpu) {
+    var temperature = (this.ui.unit.toUpperCase() === 'C')
+                        ? Math.floor(gpuTEMP) + ' °C'
+                        : Math.floor(gpuTEMP * 1.8 + 32) + ' °F';
+
+    $('#stats .gpu circle.bar').css('stroke-dasharray', gpuTEMP/cgpuMAX *c + ' ' + c);
+    $('#stats .gpu .temp').text(temperature);
+  }
+  if (this.ui.battery === true) {
+    if (data.battery) {
+      $('#stats .battery circle.bar').css('stroke-dasharray', Math.round(battCHAR / battMAX *10)*c/10+' '+c);
+      $('#stats .battery .temp').text(Math.round(battCHAR / battMAX *10)*10+' %');
+    }
+  }
+  if (data.fan) {
+    for (var i = 0; i < fanNUM; i++) {
+      $('#stats .fan-' + i + ' circle.bar').css('stroke-dasharray', Math.floor( (data.fan['fan-' + i + '-speed'] / fanMAX * 100) * c/100) + ' ' + c);
+      $('#stats .fan-' + i + ' .temp').text(Math.floor(data.fan['fan-' + i + '-speed']) + ' RPM');
+    }
+  }
+},
+
+// Here we define the iStats sections in HTML5 with inline CSS3
+renderChart: function(title, icon, percentage, temp) {
+  var r = this.r_check();
+  var c = Math.floor(2 * Math.PI * r);
+  var p = c / 100 * percentage;
+  if (this.ui.inverted === true) {var baseC = this.ui.inColor} else {var baseC = this.ui.bsColor}
+  var bgTrans = this.ui.bsTrans*this.ui.bkTrans;
+  var crTrans = this.ui.bsTrans-bgTrans;
+  var crColor = 'rgba('+baseC+crTrans+')';
+  var bgColor = 'rgba('+baseC+bgTrans+')';
+  var bwidth = (r+this.ui.thickness)*2;
+  var bheight = bwidth;
+  var iconheight = bwidth+this.ui.iconheight;
+  var html  = '<div class="chart ' + title.replace(/\s/g, '-').toLowerCase() + '">';
+      html +=       '<i class="icon ' + icon + '" style="font-size: ' + this.ui.iconsize + 'px; line-height:' + iconheight + 'px"></i>';
+      html +=       '<svg width="' + bwidth + 'px" height="' + bheight + 'px">';
+      html +=         '<circle class="bg" r="' + r + '" cx="' + (bwidth/2) + '" cy="' + (bheight/2) + '"';
+      html +=                ' style="stroke: ' + bgColor + '; stroke-width: ' + this.ui.thickness + '; stroke-dasharray: ' + c + ' ' + c + '"/>';
+      html +=         '<circle class="bar" r="' + r + '" cx="' + (bwidth/2) + '" cy="' + (bheight/2) + '" ';
+      html +=                ' style="stroke: ' + crColor + '; stroke-width: ' + this.ui.thickness + '; stroke-dasharray: ' + p + ' ' + c + '" />';
+      html +=       '</svg>';
+      html +=       '<div class="temp" style="font-size:' + this.ui.fontsize + 'px">' + temp + '</div>';
+      html += '</div>';
+  return html;
+},
+
+// Here we extract the data from istats.sh bash script and store it in arrays for every section
+parseOutput: function(output) {
+  var out = output.split('\n');
+  var o = {};
+  var section;
+  while (out.length > 0) {
+    var line = out.shift();
+    if (!line || line.match(/(\r|\n)/)) {
+        section = undefined;
+        continue;
+    }
+    if (line.match(/---.*?/)) {
+      section = line.replace(/---\s+(.*?)\s+---/, '$1');
+      continue;
+    }
+
+    var e = line.split(':');
+    var k = e.length > 0 ? e[0].toLowerCase().replace(/\s/g, '-') : null;
+    var v = e.length > 1 ? e[1].replace(/.*?(\d+)(\.\d{0,1})*.*/, '$1$2') : null;
+    if (v === null) {
+      continue;
+    }
+    if (section === 'CPU Stats') {
+      o.cpu = o.cpu || {};
+      o.cpu[k] = v;
+    }
+    if (section === 'GPU Stats') {
+      o.gpu = o.gpu || {};
+      o.gpu[k] = v;
+    }
+    if (this.ui.battery === true) {
+      if (section == 'Battery Stats') {
+      o.battery = o.battery || {};
+      o.battery[k] = v;
+      }
+    }
+    if (section === 'Fan Stats') {
+      o.fan = o.fan || {};
+      o.fan[k] = v;
+    }
+  }
+
+  return o;
+},
+
+style: "                                                     \n\
+  font-family: 'Avenir Next'                                 \n\
+  font-size: 16px                                            \n\
+  font-weight: 500                                           \n\
+  width: 100%                                                \n\
+  height: 100%                                               \n\
+  transform: auto;                                           \n\
+                                                             \n\
+  @font-face                                                 \n\
+    font-family: 'Icons';                                    \n\
+    src: url('istats.widget/icons.ttf') format('truetype')   \n\
+    font-weight: normal;                                     \n\
+    font-style: normal;                                      \n\
+                                                             \n\
+  [class^='icon-'], [class*=' icon-']                        \n\
+    font-family: 'Icons';                                    \n\
+    background: none;                                        \n\
+    width: auto;                                             \n\
+    height: auto;                                            \n\
+    font-style: normal                                       \n\
+                                                             \n\
+  #stats                                                     \n\
+    position: absolute                                       \n\
+    margin: 0rem 0rem 0rem 2rem                              \n\
+    padding: 0 0                                             \n\
+                                                             \n\
+  #stats .chart                                              \n\
+    position: relative                                       \n\
+    float: left                                              \n\
+    margin: 0rem 2rem 0rem 0rem                              \n\
+                                                             \n\
+  #stats .chart i                                            \n\
+    text-align: center                                       \n\
+    position: absolute                                       \n\
+    width: 100%                                              \n\
+                                                             \n\
+  #stats .chart .temp                                        \n\
+    text-align: center                                       \n\
+    display: block                                           \n\
+                                                             \n\
+  #stats .chart svg                                          \n\
+    transform: rotate(-90deg)                                \n\
+                                                             \n\
+  #stats .chart circle                                       \n\
+    fill: transparent                                        \n\
+                                                             \n\
+  #stats .chart .icon-cpu:before                             \n\
+    content: '\\f002'                                        \n\
+                                                             \n\
+  #stats .chart .icon-gpu:before                             \n\
+    content: '\\f108'                                        \n\
+                                                             \n\
+  #stats .chart .icon-carbattery:before                      \n\
+    content: '\\f553'                                        \n\
+                                                             \n\
+  #stats .chart .icon-fan:before                             \n\
+    content: '\\f66f'                                        \n\
+"
