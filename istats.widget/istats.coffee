@@ -3,18 +3,24 @@
 #
 # by CFMoreu on ATOM
 # UNLICENSE
-# 
+#
 # Battery Installed
 # Fully Charged
 # Charging
 
 # UI input data
 ui =
-  margin: [200, 0, 0, 50]
+  margin: [20, 0, 0, 30]     # in units
+  radius: 47                  # in PX
   units : 'px'
   color : 'white, 0.5'
   coInv : 'black, 0.5'
-  invert: false
+  invert: true
+  vueltas: 90*1               # RPM
+  desfase: 0
+  thickness: 8                # % of radius
+  sec: 60
+  refresh: 3                  # s of refresh
 
 # Processing UI data
 ui.color = ui.coInv if ui.invert == true
@@ -24,22 +30,87 @@ for i in ui.margin
   el     = ui.margin[count]
   margin += ' '+el+ui.units
   count++
+ui.thickness = ui.thickness*ui.radius/100
+ui.c = Math.floor 2*Math.PI*(ui.radius-ui.thickness/2)
+ui.iconSize = ui.radius*.8
+ui.iconSet = ['\\f002', '\\f108', '\\f553', '\\f66f']
+ui.iconSelect = ui.iconSet[3]
 
 battery = true
 
 command: 'istats; pmset -g batt'
 
-refreshFrequency: 3000
+#refreshFrequency: ui.sec*1000/20
+refreshFrequency: ui.refresh*1000
 
 style: """
   margin: #{margin}
   color: rgba(#{ui.color})
   font-family: Helvetica Neue
+
+  @font-face
+    font-family: 'Icons'
+    src: url('istats.widget/icons.ttf') format('truetype')
+    font-weight: normal
+    font-style: normal
+
+  [class^='icon-'], [class*=' icon-']
+    font-family: 'Icons'
+    background: none
+    width: auto
+    height: auto
+    font-style: normal
+
+  #istats
+    position: absolute
+    margin: 0rem 0rem 0rem 0rem
+    padding: 0 0
+
+  .bar
+    fill: transparent
+    stroke: rgba(#{ui.color.slice 0, -5} 0.3)
+    stroke-width: #{ui.thickness}
+    stroke-dasharray: 20 #{ui.c}
+
+  .bg
+    fill: transparent
+    stroke: rgba(#{ui.color.slice 0, -5} 0.1)
+    stroke-width: #{ui.thickness}
+    stroke-dasharray: #{ui.c} #{ui.c}
+
+  .chart i
+    animation-name: rotation
+    animation-duration: #{ui.sec}s
+    animation-delay: 0s
+    animation-timing-function: linear
+    animation-iteration-count: infinite
+
+  .chart .icon
+    position: fixed
+    font-size: #{ui.iconSize}px
+    top: #{Math.round(ui.margin[0]+ui.radius-(ui.iconSize/0.8185)/2)}px
+    left: #{Math.round(ui.margin[3]+ui.radius-ui.iconSize/2)}px
+    transform-origin: 50.095% 52.81%
+
+  .chart svg
+    transform: rotate(-90deg)
+
+
+  .chart .icon-cpu:before
+    content: '#{ui.iconSelect}'
+
+  @keyframes rotation
+    from {transform: rotate(0+#{ui.desfase}deg)}
+    to {transform: rotate(360*#{ui.vueltas}+#{ui.desfase}deg)}
 """
 
 render: (output) -> """
-  <div class="istats"></div>
-  <div class="pmset"></div>
+  <div id="istats">
+    <div id="stats">
+      <div class="chart"></div>
+    </div>
+    <div class="pmset"></div>
+  </div>
 """
 
 update: (output, domEl) ->
@@ -55,6 +126,8 @@ update: (output, domEl) ->
     charge : '%'
     time   : ''
     speed  : 'RPM'
+
+  data.temp.cgpuMAX = 90
 
   temPattern = ///  # Begin HeRegEx
     (\w+)           # one or more letter followed by 'PU'
@@ -103,6 +176,17 @@ update: (output, domEl) ->
     # content += "#{k}: #{data.temp[k]} ºC<br>"
   # for k in data.batt
     # content += "#{k}: #{data.batt[k]}<br>"
+  # ui.rotate += 10
+  myCircle = """
+  <i class="icon icon-cpu"></i>
+  <svg width='#{ui.radius*2}px' height='#{ui.radius*2}px'>
+    <circle class='bg' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}' />
+    <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
+    style='stroke-dasharray: #{ui.c/2} #{ui.c}'/>
+  </svg>
+  """
+  # style='stroke-dasharray: #{data.temp.cpu/data.temp.cgpuMAX*ui.c} #{ui.c}'/>
+
   for it in Object.keys data
     i = data[it]
     if i == data.temp
@@ -119,5 +203,6 @@ update: (output, domEl) ->
     if i == data.fan
       content += "fan<br>"
 
-  dom.find('.istats').html 'iStats'
-  dom.find('.pmset').html content
+  # dom.find('.istats').html 'iStats'
+  dom.find('.chart').html myCircle
+  # dom.find('.pmset').html content

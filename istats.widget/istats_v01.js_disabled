@@ -4,7 +4,7 @@
  * refined by Carlos F. Moreu
  * ____________________________________________________________________________
  *
- * Requires installation of https://github.com/Chris911/iStats.
+ * Requires installation of https://github.com/CFMoreu/iStats.
  *
  */
 
@@ -13,15 +13,15 @@
 ui: {
   unit: 'C',                      // Temperature unit, either C or F
   top: '25',                      // Vertical position in PX, either top or bottom    | bottom: '0',
-  left: '20',                      // Horizontal position in PX, either left or right  | right: '0',
+  left: '20',                     // Horizontal position in PX, either left or right  | right: '0',
   bsColor: '255, 255, 255, ',     // Base Color
   inColor: '0, 0, 0, ',           // Alternative Color
   inverted: false,                // Boolean operator of exange base/alternative color
   bsTrans: 0.4,                   // Base Opacity
   bkTrans: 0.25,                  // Background percentage opacity
   radius: 50,                     // Radius in PX
-  gLeft: '2',                      // Margin iStats Left in REM
-  iRight: '2',                  // Separete stats in REM
+  gLeft: '2',                     // Margin iStats Left in REM
+  iRight: '2',                    // Separete stats in REM
   thickness: 4,                   // Donut line thickness in PX
   iconsize: 32,                   // Icon size in PX
   iconheight: -4,                 // Icon height in PX
