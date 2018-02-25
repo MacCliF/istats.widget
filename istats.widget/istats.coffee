@@ -11,7 +11,7 @@
 # UI input data
 ui =
   margin: [20, 0, 0, 30]     # in units
-  radius: 47                  # in PX
+  radius: 470                  # in PX
   units : 'px'
   color : 'white, 0.5'
   coInv : 'black, 0.5'
@@ -32,13 +32,13 @@ for i in ui.margin
   count++
 ui.thickness = ui.thickness*ui.radius/100
 ui.c = Math.floor 2*Math.PI*(ui.radius-ui.thickness/2)
-ui.iconSize = ui.radius*.8
+ui.iconSize = ui.radius*.5
 ui.iconSet = ['\\f002', '\\f108', '\\f553', '\\f66f']
 ui.iconSelect = ui.iconSet[3]
 
 battery = true
 
-command: 'istats; pmset -g batt'
+command: 'pmset -g batt'
 
 #refreshFrequency: ui.sec*1000/20
 refreshFrequency: ui.refresh*1000
@@ -99,12 +99,16 @@ style: """
   .chart .icon-cpu:before
     content: '#{ui.iconSelect}'
 
+  .chart .icon-fan
+    fill: 'white'
+
   @keyframes rotation
     from {transform: rotate(0+#{ui.desfase}deg)}
     to {transform: rotate(360*#{ui.vueltas}+#{ui.desfase}deg)}
 """
 
 render: (output) -> """
+  <link rel="import" href="icon-sprites-01.svg" />
   <div id="istats">
     <div id="stats">
       <div class="chart"></div>
@@ -183,6 +187,9 @@ update: (output, domEl) ->
     <circle class='bg' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}' />
     <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
     style='stroke-dasharray: #{ui.c/2} #{ui.c}'/>
+  </svg>
+  <svg class="svg icon-fan">
+    <use xlink:href="#fan"></use>
   </svg>
   """
   # style='stroke-dasharray: #{data.temp.cpu/data.temp.cgpuMAX*ui.c} #{ui.c}'/>
