@@ -11,7 +11,7 @@
 # UI input data
 ui =
   margin: [20, 0, 0, 30]     # in units
-  radius: 470                  # in PX
+  radius: 50                  # in PX
   units : 'px'
   color : 'white, 0.5'
   coInv : 'black, 0.5'
@@ -32,9 +32,7 @@ for i in ui.margin
   count++
 ui.thickness = ui.thickness*ui.radius/100
 ui.c = Math.floor 2*Math.PI*(ui.radius-ui.thickness/2)
-ui.iconSize = ui.radius*.5
-ui.iconSet = ['\\f002', '\\f108', '\\f553', '\\f66f']
-ui.iconSelect = ui.iconSet[3]
+ui.iconSize = ui.radius
 
 battery = true
 
@@ -99,8 +97,22 @@ style: """
   .chart .icon-cpu:before
     content: '#{ui.iconSelect}'
 
-  .fan-icon
+  .cpu-icon
+    position: fixed
+    width: #{ui.iconSize}px
+    height: #{ui.iconSize}px
+    top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
+    left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
     fill: rgba(#{ui.color})
+
+  .fan-icon
+    position: fixed
+    width: #{ui.iconSize}px
+    height: #{ui.iconSize}px
+    top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
+    left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
+    fill: rgba(#{ui.color})
+    transform: rotate(90deg)
     animation-name: rotation
     animation-duration: #{ui.sec}s
     animation-delay: 0s
@@ -208,13 +220,12 @@ update: (output, domEl) ->
     # content += "#{k}: #{data.batt[k]}<br>"
   # ui.rotate += 10
   myCircle = """
-  <i class="icon icon-cpu"></i>
   <svg width='#{ui.radius*2}px' height='#{ui.radius*2}px'>
     <circle class='bg' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}' />
     <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
     style='stroke-dasharray: #{ui.c/2} #{ui.c}'/>
   </svg>
-  <svg class="fan-icon" width='500px' height='500px'>
+  <svg class="fan-icon">
     <use xlink:href="#fan"></use>
   </svg>
   """
