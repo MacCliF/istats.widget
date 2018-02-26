@@ -32,37 +32,23 @@ for i in ui.margin
   count++
 ui.thickness = ui.thickness*ui.radius/100
 ui.c = Math.floor 2*Math.PI*(ui.radius-ui.thickness/2)
-ui.iconSize = ui.radius
+ui.iconSize = ui.radius*1.2
 
 battery = true
 
-command: 'pmset -g batt'
+command: 'istats; pmset -g batt'
 
 refreshFrequency: false
 # refreshFrequency: ui.refresh*1000
 
 style: """
-  margin: #{margin}
   color: rgba(#{ui.color})
   font-family: Helvetica Neue
 
-  @font-face
-    font-family: 'Icons'
-    src: url('istats.widget/icons.ttf') format('truetype')
-    font-weight: normal
-    font-style: normal
-
-  [class^='icon-'], [class*=' icon-']
-    font-family: 'Icons'
-    background: none
-    width: auto
-    height: auto
-    font-style: normal
-
   #istats
-    position: absolute
-    margin: 0rem 0rem 0rem 0rem
-    padding: 0 0
+    position: fixed
+    margin: 50px 0px 0px 50px
+    padding: 0px 0px
 
   .bar
     fill: transparent
@@ -76,43 +62,30 @@ style: """
     stroke-width: #{ui.thickness}
     stroke-dasharray: #{ui.c} #{ui.c}
 
-  .chart i
-    animation-name: rotation
-    animation-duration: #{ui.sec}s
-    animation-delay: 0s
-    animation-timing-function: linear
-    animation-iteration-count: infinite
-
-  .chart .icon
-    position: fixed
-    font-size: #{ui.iconSize}px
-    top: #{Math.round(ui.margin[0]+ui.radius-(ui.iconSize/0.8185)/2)}px
-    left: #{Math.round(ui.margin[3]+ui.radius-ui.iconSize/2)}px
-    transform-origin: 50.095% 52.81%
-
-  .chart svg
+  .circle
     transform: rotate(-90deg)
 
+  .chart
+    position: relative
+    float: left
+    margin: 0px 0px 0px 0px
+    padding: 0 0
 
-  .chart .icon-cpu:before
-    content: '#{ui.iconSelect}'
+  .desc
+    position: relative
+    float: left
+    top: #{ui.radius*2.2}px
+    left: -#{ui.radius*2}px
 
-  .cpu-icon
-    position: fixed
+  .icon
+    position: absolute
+    top: #{ui.radius-ui.iconSize/2}px
+    left: #{ui.radius-ui.iconSize/2}px
     width: #{ui.iconSize}px
     height: #{ui.iconSize}px
-    top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
-    left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
     fill: rgba(#{ui.color})
 
-  .fan-icon
-    position: fixed
-    width: #{ui.iconSize}px
-    height: #{ui.iconSize}px
-    top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
-    left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
-    fill: rgba(#{ui.color})
-    transform: rotate(90deg)
+  #fan-icon
     animation-name: rotation
     animation-duration: #{ui.sec}s
     animation-delay: 0s
@@ -124,13 +97,13 @@ style: """
     to {transform: rotate(360*#{ui.vueltas}+#{ui.desfase}deg)}
 """
 
+# top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
+# left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
 
   # <link rel="import" href="istats.widget/icon_sprites-01.svg" />
 render: (output) -> """
   <div id="istats">
-    <div id="stats">
-      <div class="chart"></div>
-    </div>
+    <div id="stats"></div>
     <div class="pmset"></div>
   </div>
 """
@@ -199,35 +172,40 @@ update: (output, domEl) ->
   # for k in data.batt
     # content += "#{k}: #{data.batt[k]}<br>"
   # ui.rotate += 10
-  myCircle = """
-  <svg width='#{ui.radius*2}px' height='#{ui.radius*2}px'>
-    <circle class='bg' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}' />
-    <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
-    style='stroke-dasharray: #{ui.c/2} #{ui.c}'/>
-  </svg>
-  <svg class="fan-icon">
-    <use xlink:href="istats.widget/icon_sprites-01.svg#fan" />
-  </svg>
-  """
-  # style='stroke-dasharray: #{data.temp.cpu/data.temp.cgpuMAX*ui.c} #{ui.c}'/>
+  for k in Object.keys data.temp
+    circ=data.temp[k]/data.temp.cgpuMAX*ui.c
+    content += """
+    <div id="#{k}-stats" class="chart">
+      <svg class="circle" width='#{ui.radius*2}px' height='#{ui.radius*2}px'>
+        <circle class='bg' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}' />
+        <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
+        style='stroke-dasharray: #{circ} #{ui.c}'/>
+      </svg>
+      <svg id="fan-icon" class="icon">
+        <use xlink:href="istats.widget/icon_sprites-01.svg#fan" />
+      </svg>
+    </div>
+    <span class="desc">#{k}: #{data.temp[k]} ºC</span>
+    """
+# <span class="desc">#{k}: #{data.temp[k]} ºC</span>
 
-  for it in Object.keys data
-    i = data[it]
-    if i == data.temp
-      for key in Object.keys i
-        val = i[key]
-        u = unit.temp
-        content += "#{key}: #{val} #{u}<br>"
-    if i == data.batt
-      for key in Object.keys i
-        val = i[key]
-        content += "batt.#{key}: #{val}<br>"
-      val = Math.round(100-(data.batt.count/data.batt.cycles*100))
-      content += "batt.life: #{val} %<br>"
-    if i == data.fan
-      content += "fan<br>"
+  # for it in Object.keys data
+  #   i = data[it]
+  #   if i == data.temp
+  #     for key in Object.keys i
+  #       val = i[key]
+  #       u = unit.temp
+  #       content += "#{key}: #{val} #{u}<br>"
+  #   if i == data.batt
+  #     for key in Object.keys i
+  #       val = i[key]
+  #       content += "batt.#{key}: #{val}<br>"
+  #     val = Math.round(100-(data.batt.count/data.batt.cycles*100))
+  #     content += "batt.life: #{val} %<br>"
+  #   if i == data.fan
+  #     content += "fan<br>"
 
   # dom.find('.istats').html 'iStats'
-  dom.find('.chart').html myCircle
+  dom.find('#stats').html content
   # dom.find('head').appendChild '<link rel="import" href="istats.widget/icon-sprites-01.svg" />'
   # dom.find('.pmset').html content
