@@ -44,6 +44,7 @@ refreshFrequency: false
 style: """
   color: rgba(#{ui.color})
   font-family: Helvetica Neue
+  font-size: 12px
 
   #istats
     position: fixed
@@ -68,14 +69,16 @@ style: """
   .chart
     position: relative
     float: left
-    margin: 0px 0px 0px 0px
+    margin: 0px 30px 0px 0px
     padding: 0 0
 
   .desc
-    position: relative
-    float: left
-    top: #{ui.radius*2.2}px
-    left: -#{ui.radius*2}px
+    position: absolute
+    width: #{ui.radius*2}px
+    bottom: -20px
+    left: 0px
+    margin: auto
+    text-align: center
 
   .icon
     position: absolute
@@ -184,8 +187,8 @@ update: (output, domEl) ->
       <svg id="fan-icon" class="icon">
         <use xlink:href="istats.widget/icon_sprites-01.svg#fan" />
       </svg>
+      <span class="desc">#{k}: #{data.temp[k]} ºC</span>
     </div>
-    <span class="desc">#{k}: #{data.temp[k]} ºC</span>
     """
 # <span class="desc">#{k}: #{data.temp[k]} ºC</span>
 
