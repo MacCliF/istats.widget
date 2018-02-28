@@ -3,14 +3,11 @@
 #
 # by CFMoreu on ATOM
 # UNLICENSE
-#
-# Battery Installed
-# Fully Charged
-# Charging
 
-# UI input data
+# UI & input data
 ui =
   margin: [20, 0, 0, 30]     # in units
+  m_right: 20                 # in PX separation of charts in
   radius: 50                  # in PX
   units : 'px'
   color : 'white, 0.5'
@@ -32,36 +29,38 @@ for i in ui.margin
   count++
 ui.thickness = ui.thickness*ui.radius/100
 ui.c = Math.floor 2*Math.PI*(ui.radius-ui.thickness/2)
-ui.iconSize = ui.radius*1.2
+ui.iconSize = ui.radius
 
-battery = true
-
+# Terminal request
 command: 'istats; pmset -g batt'
 
-refreshFrequency: false
-# refreshFrequency: ui.refresh*1000
+# refreshFrequency: false
+refreshFrequency: ui.refresh*1000
 
+# CSS3 stylish
 style: """
   color: rgba(#{ui.color})
   font-family: Helvetica Neue
-  font-size: 12px
 
   #istats
     position: fixed
-    margin: 50px 0px 0px 50px
-    padding: 0px 0px
+    margin: #{margin}
 
-  .bar
-    fill: transparent
-    stroke: rgba(#{ui.color.slice 0, -5} 0.3)
-    stroke-width: #{ui.thickness}
-    stroke-dasharray: 20 #{ui.c}
+  #pmset
+    position: fixed
+    margin-top: #{ui.radius*3} px
 
-  .bg
+  .bar, .bg
     fill: transparent
-    stroke: rgba(#{ui.color.slice 0, -5} 0.1)
     stroke-width: #{ui.thickness}
     stroke-dasharray: #{ui.c} #{ui.c}
+
+  .bar
+    stroke: rgba(#{ui.color.slice 0, -5} 0.3)
+    stroke-dasharray: #{ui.c*0.75} #{ui.c}
+
+  .bg
+    stroke: rgba(#{ui.color.slice 0, -5} 0.1)
 
   .circle
     transform: rotate(-90deg)
@@ -69,19 +68,19 @@ style: """
   .chart
     position: relative
     float: left
-    margin: 0px 30px 0px 0px
-    padding: 0 0
+    margin-right: #{ui.m_right}px
 
   .desc
     position: absolute
     width: #{ui.radius*2}px
-    bottom: -20px
+    top: #{ui.radius*2.15}px
     left: 0px
     margin: auto
     text-align: center
 
   .icon
     position: absolute
+    margin: auto
     top: #{ui.radius-ui.iconSize/2}px
     left: #{ui.radius-ui.iconSize/2}px
     width: #{ui.iconSize}px
@@ -100,17 +99,19 @@ style: """
     to {transform: rotate(360*#{ui.vueltas}+#{ui.desfase}deg)}
 """
 
-# top: #{ui.margin[0]+ui.radius-ui.iconSize/2}px
-# left: #{ui.margin[3]+ui.radius-ui.iconSize/2}px
-
-  # <link rel="import" href="istats.widget/icon_sprites-01.svg" />
+# HTML5 structure
 render: (output) -> """
   <div id="istats">
     <div id="stats"></div>
-    <div class="pmset"></div>
+    <div id="pmset"></div>
   </div>
 """
 
+
+
+
+
+# Parse output & Update function
 update: (output, domEl) ->
   # Define constants, and extract the juicy html.
   dom = $(domEl)
@@ -125,25 +126,29 @@ update: (output, domEl) ->
     time   : ''
     speed  : 'RPM'
 
-  data.temp.cgpuMAX = 90
+  data.cgpuMAX = 90
+  data.fanMAX  = 5000
 
-  temPattern = ///  # Begin HeRegEx
-    (\w+)           # one or more letter followed by 'PU'
-    \stemp:\s+      # ' temp:' followed by one or more ' '
-    (\d+.\d+)       # one or more digit followed by . and one or more digit
-  ///               # End HeRegEx
-
+  temPattern = /(\w+)\stemp:\s+(\d+.\d+)/               # End HeRegEx
   batPattern = /Current\scharge:/
   powPattern = /(\d+[.\d+]+)%/
   bxxPattern =
     count    : /(count):\s+(\d+)/
     cycles   : /(cycles):\s+(\d+)/
-    drawn    : /Now\s(drawin)g\sfrom\s'(\w+[\s\w+]+)'/
+    drawin    : /Now\s(drawin)g\sfrom\s'(\w+[\s\w+]+)'/
     time     : /(\d+:\d+)\s(remain)ing/
   bxx = ['count', 'cycles', 'drawn', 'time']
+  fanPattern = /Fan\s\d+\sspeed:\s+(\d+)\sRPM/
 
   out = output.split('\n')
   content = ''
+
+  if output.match batPattern
+    other = "There is a battery"
+  else
+    other = "There is NO battery"
+
+  fan_c = 0
 
   for i in out
     if i.match temPattern
@@ -156,27 +161,47 @@ update: (output, domEl) ->
       k = 'charge'
       v = txt[1]
       data.batt[k] = v
-    for value in Object.values bxxPattern
-      if i.match value
-        txt = i.match value
-        k = txt[1]
-        v = txt[2]
-        if v == 'remain'
-          v = k
-          k = 'remain'
-        data.batt[k] = v
-      # data.batt.push txt[2]
-      # data.batt.push txt[3]
-      # data.batt.push txt[4]
+    if output.match batPattern
+      for value in Object.values bxxPattern
+        if i.match value
+          txt = i.match value
+          k = txt[1]
+          v = txt[2]
+          if v == 'remain'
+            v = k
+            k = 'remain'
+          data.batt[k] = v
+    if i.match fanPattern
+      txt = i.match fanPattern
+      data.fan[fan_c] = txt[1]
+      fan_c += 1
 
+  chart=
+    cpu:  [data.temp.cpu/data.cgpuMAX*ui.c, "#{data.temp.cpu} ºC",  "cpu"]
+    gpu:  [data.temp.gpu/data.cgpuMAX*ui.c, "#{data.temp.gpu} ºC",  "gpu"]
+  if output.match batPattern
+    chart.batt = [data.batt.charge/100*ui.c, "#{data.batt.drawin}",  "batt0"]
+    if data.batt.drawin == "AC Power"
+      if data.batt.remain == "0:00"
+        chart.batt[1]="AC"
+        chart.batt[2]="batt2"
+      else
+        chart.batt[1]=data.batt.remain
+        chart.batt[2]="batt2"
+    else
+      chart.batt[1]=data.batt.remain
+  i = 0
+  while i < data.fan.length
+    k = "fan"+i
+    chart[k] = [data.fan[i]/data.fanMAX*ui.c, "#{data.fan[i]} RPM", "fan"]
+    i+=1
 
-  # for k in data.temp
-    # content += "#{k}: #{data.temp[k]} ºC<br>"
-  # for k in data.batt
-    # content += "#{k}: #{data.batt[k]}<br>"
-  # ui.rotate += 10
-  for k in Object.keys data.temp
-    circ=data.temp[k]/data.temp.cgpuMAX*ui.c
+  for k in Object.keys chart
+    j=chart[k]
+    circ=j[0]
+    if k.match /(fan)\d+/
+      value = k.match /(fan)\d+/
+      k = value[1]
     content += """
     <div id="#{k}-stats" class="chart">
       <svg class="circle" width='#{ui.radius*2}px' height='#{ui.radius*2}px'>
@@ -184,31 +209,16 @@ update: (output, domEl) ->
         <circle class='bar' r='#{ui.radius-ui.thickness/2}' cx='#{ui.radius}' cy='#{ui.radius}'
         style='stroke-dasharray: #{circ} #{ui.c}'/>
       </svg>
-      <svg id="fan-icon" class="icon">
-        <use xlink:href="istats.widget/icon_sprites-01.svg#fan" />
+      <svg id="#{k}-icon" class="icon">
+        <use xlink:href="istats.widget/icon_sprites-04.svg##{j[2]}" />
       </svg>
-      <span class="desc">#{k}: #{data.temp[k]} ºC</span>
+      <span class="desc">#{j[1]}</span>
     </div>
     """
-# <span class="desc">#{k}: #{data.temp[k]} ºC</span>
 
-  # for it in Object.keys data
-  #   i = data[it]
-  #   if i == data.temp
-  #     for key in Object.keys i
-  #       val = i[key]
-  #       u = unit.temp
-  #       content += "#{key}: #{val} #{u}<br>"
-  #   if i == data.batt
-  #     for key in Object.keys i
-  #       val = i[key]
-  #       content += "batt.#{key}: #{val}<br>"
-  #     val = Math.round(100-(data.batt.count/data.batt.cycles*100))
-  #     content += "batt.life: #{val} %<br>"
-  #   if i == data.fan
-  #     content += "fan<br>"
+  # other=""
+  # for k in Object.keys chart
+  #   other+=k
 
-  # dom.find('.istats').html 'iStats'
   dom.find('#stats').html content
-  # dom.find('head').appendChild '<link rel="import" href="istats.widget/icon-sprites-01.svg" />'
-  # dom.find('.pmset').html content
+  # dom.find('#pmset').html other
